@@ -1,104 +1,90 @@
 # Patient No-Show Prediction
 
-Predict whether a patient will show up for their medical appointment, with a focus on minimizing bias in the prediction process.
+A healthcare-oriented machine learning and Streamlit project for identifying likely appointment no-shows, prioritizing outreach, and helping clinic teams protect schedule utilization.
 
-## Table of Contents
+## What Changed
 
-- [Overview](#overview)
-- [Features](#features)
-- [Dataset](#dataset)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
-- [Results](#results)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
+This version is rebuilt around a reproducible training pipeline instead of missing pickle files.
 
----
+- `modeling.py` now cleans the raw appointment data, engineers operational features, trains a LightGBM classifier, evaluates performance, and saves a reusable artifact.
+- `app.py` is now a clinic-style command center with:
+  - operations KPIs
+  - high-risk segment views
+  - patient-level risk triage
+  - intervention guidance
+  - model quality reporting
 
-## Overview
+## Modeling Approach
 
-Missed medical appointments can lead to inefficiencies and increased costs in healthcare. This project uses machine learning to predict patient no-shows, aiming to help clinics optimize scheduling and resource allocation. Special attention is given to reducing bias in the model.
+The upgraded model uses healthcare operations signals that are common in access and scheduling workflows:
 
-## Features
+- age and age band
+- appointment lead time
+- same-day booking indicator
+- scheduling hour
+- neighborhood
+- reminder outreach (`SMS_received`)
+- social support proxy (`Scholarship`)
+- chronic condition burden from hypertension, diabetes, alcoholism, and disability flags
+- prior appointment count and prior missed-visit history for returning patients
+- appointment weekday and month
 
-- Exploratory Data Analysis (EDA) of patient appointment data
-- Machine learning model to predict no-shows
-- Bias mitigation techniques
-- Easy-to-use Python scripts and Jupyter notebooks
+Cleaning rules:
 
-## Dataset
+- remove invalid negative ages
+- convert date columns to timestamps
+- clip negative lead times to zero so scheduling artifacts do not create impossible waiting times
 
-- **File:** `patients.csv`
-- **Description:** Contains anonymized patient appointment records with features such as age, gender, appointment date, and whether the patient showed up.
+Model choice:
 
-## Installation
+- gradient boosting with LightGBM
+- class balancing enabled for the minority no-show class
+- train/test split with stratification
+- evaluation includes ROC-AUC, average precision, Brier score, precision, and recall
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/Patient-No-Show-prediction-.git
-   cd Patient-No-Show-prediction-
-   ```
+## Run The App
 
-2. **Create and activate a virtual environment (optional but recommended):**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
+1. Create a virtual environment:
 
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
 
-## Usage
+2. Install dependencies:
 
-- **Exploratory Data Analysis:**
-  Open and run `eda.ipynb` in Jupyter Notebook to explore the dataset.
+```bash
+pip install -r requirements.txt
+```
 
-- **Model Training and Evaluation:**
-  Use `model.ipynb` to train and evaluate the machine learning model.
+3. Start Streamlit:
 
-- **Run the Application:**
-  If `app.py` is a script or web app, run:
-  ```bash
-  python app.py
-  ```
+```bash
+streamlit run app.py
+```
+
+On first launch, the app will train the model from `patients.csv` and save an artifact to `artifacts/no_show_model.joblib`.
 
 ## Project Structure
 
-```
+```text
 .
-├── app.py              # Main application script (e.g., API or CLI)
-├── eda.ipynb           # Exploratory Data Analysis notebook
-├── model.ipynb         # Model training and evaluation notebook
-├── patients.csv        # Dataset
-├── requirements.txt    # Python dependencies
-├── README.md           # Project documentation
-└── venv/               # Virtual environment (optional)
+├── app.py
+├── modeling.py
+├── patients.csv
+├── requirements.txt
+└── artifacts/
+    └── no_show_model.joblib
 ```
 
-## Results
+## Product Framing
 
-- Model performance metrics (accuracy, precision, recall, etc.) are available in `model.ipynb`.
-- Bias analysis and mitigation results are discussed in the notebooks.
+This project is intended for operational decision support, including:
 
-## Contributing
+- reminder prioritization
+- call-list generation
+- rescheduling outreach
+- waitlist and backfill planning
+- schedule risk monitoring
 
-Contributions are welcome! Please open an issue or submit a pull request for improvements or bug fixes.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/YourFeature`)
-3. Commit your changes (`git commit -am 'Add new feature'`)
-4. Push to the branch (`git push origin feature/YourFeature`)
-5. Open a pull request
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
-## Acknowledgements
-
-- Inspired by real-world healthcare scheduling challenges.
-- Thanks to the open-source community for tools and libraries. 
+It should not be used to restrict care access or replace staff judgment.
